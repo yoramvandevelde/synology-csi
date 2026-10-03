@@ -91,6 +91,9 @@ storageClasses:
     ##  dsm: "1.1.1.1"
     ##  fsType: ext4
     ##  location: /volume1
+    # (optional) Mount options, e.g. for NFS:
+    ##mountOptions:
+    ##  - nfsvers=4.1
   # synology-iscsi-storage-delete:
   #   reclaimPolicy: Delete
 volumeSnapshotClasses:
