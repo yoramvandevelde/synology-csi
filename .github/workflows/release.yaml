@@ -119,3 +119,27 @@ jobs:
         run: |
           test -n "${{ steps.push.outputs.digest }}"
           cosign sign --yes "${CHART_REPO}/synology-csi@${{ steps.push.outputs.digest }}"
+
+  release:
+    needs: [image, chart]
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: write # create the GitHub release
+
+    steps:
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DIGEST: ${{ needs.image.outputs.digest }}
+        run: |
+          cat > notes.md <<NOTES
+          Image: \`${IMAGE}:${GITHUB_REF_NAME}\`
+          Digest: \`${DIGEST}\`
+          Chart: \`oci://${CHART_REPO}/synology-csi\` version \`${GITHUB_REF_NAME#v}\`
+          NOTES
+          gh release create "${GITHUB_REF_NAME}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --verify-tag \
+            --generate-notes \
+            --notes-file notes.md
