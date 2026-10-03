@@ -104,7 +104,7 @@ spec:
             - --chroot-dir=/host
             {{- end }}
             {{- with $.Values.node.extraArgs }}
-            {{ toYaml . }}
+            {{- toYaml . | nindent 12 }}
             {{- end }}
           env:
             - name: CSI_ENDPOINT
