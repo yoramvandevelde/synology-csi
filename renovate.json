@@ -10,6 +10,11 @@
   "osvVulnerabilityAlerts": true,
   "packageRules": [
     {
+      "description": "The release workflow manages the plugin image digest in the chart",
+      "matchPackageNames": ["ghcr.io/yoramvandevelde/synology-csi"],
+      "enabled": false
+    },
+    {
       "description": "Go modules follow upstream; only security fixes open PRs, the rest waits for approval on the dashboard",
       "matchManagers": ["gomod"],
       "dependencyDashboardApproval": true
