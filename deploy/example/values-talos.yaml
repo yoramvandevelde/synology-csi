@@ -1,0 +1,64 @@
+# Example Helm values for Talos Linux.
+#
+# helm install synology-csi oci://ghcr.io/yoramvandevelde/charts/synology-csi \
+#   --version <version> --namespace synology-csi -f values-talos.yaml
+#
+# Prerequisites:
+# - Talos nodes run the siderolabs/iscsi-tools system extension.
+# - The namespace allows privileged pods (Talos enforces "baseline" by default):
+#     kubectl label namespace synology-csi pod-security.kubernetes.io/enforce=privileged
+# - A Secret with the DSM connection details exists in the namespace; see below.
+
+# The chart does not create the Secret. Provide it with whatever you use
+# (Sealed Secrets, SOPS, External Secrets, plain kubectl). It must contain a key
+# "client-info.yml" with this content:
+#
+#   clients:
+#     - host: 192.168.1.10
+#       port: 5001
+#       https: true
+#       username: csi
+#       password: <password>
+#       # tlsCACert: |   # needed when DSM uses a self-signed certificate
+#       #   -----BEGIN CERTIFICATE-----
+#
+# For example:
+#   kubectl -n synology-csi create secret generic client-info-secret \
+#     --from-file=client-info.yml=./client-info.yml
+clientInfoSecret:
+  create: false
+  name: client-info-secret
+
+# Released charts already pin the plugin image by digest (images.plugin.digest).
+# Do not set it to "" here: that overrides the pinned digest.
+
+node:
+  extraArgs:
+    # Talos has no /usr/bin/env; an absolute path skips the env wrapper.
+    - --iscsiadm-path=/usr/local/sbin/iscsiadm
+
+storageClasses:
+  # Maps merge with the chart defaults, so disable the default class explicitly.
+  synology-iscsi-storage:
+    disabled: true
+  synology-iscsi:
+    reclaimPolicy: Delete
+    volumeBindingMode: WaitForFirstConsumer
+    parameters:
+      protocol: iscsi
+      dsm: "192.168.1.10"
+      location: /volume1
+      fsType: ext4
+  # synology-nfs:
+  #   reclaimPolicy: Delete
+  #   parameters:
+  #     protocol: nfs
+  #     dsm: "192.168.1.10"
+  #     location: /volume1
+  #   mountOptions:
+  #     - nfsvers=4.1
+
+# DS216 has no Btrfs, so no LUN snapshots.
+volumeSnapshotClasses:
+  synology-snapshotclass:
+    disabled: true
