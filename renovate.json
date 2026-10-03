@@ -1,0 +1,60 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "docker:pinDigests",
+    "helpers:pinGitHubActionDigests"
+  ],
+  "minimumReleaseAge": "7 days",
+  "internalChecksFilter": "strict",
+  "osvVulnerabilityAlerts": true,
+  "packageRules": [
+    {
+      "description": "Go modules follow upstream; only security fixes open PRs, the rest waits for approval on the dashboard",
+      "matchManagers": ["gomod"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Sidecar bumps can need RBAC changes",
+      "matchPackageNames": ["registry.k8s.io/sig-storage/**"],
+      "groupName": "CSI sidecars",
+      "prBodyNotes": ["Check the sidecar release notes for RBAC changes in the chart templates."]
+    },
+    {
+      "description": "A new upstream driver release needs a code sync, not just this bump",
+      "matchDepNames": ["SynologyOpenSource/synology-csi"],
+      "minimumReleaseAge": null,
+      "labels": ["upstream"],
+      "prBodyNotes": ["Sync the upstream code changes before merging; this PR only bumps appVersion."]
+    }
+  ],
+  "customManagers": [
+    {
+      "description": "Sidecar images in the Helm values",
+      "customType": "regex",
+      "managerFilePatterns": ["/^deploy/helm/values\\.yaml$/"],
+      "matchStrings": [
+        "image: (?<depName>registry\\.k8s\\.io/\\S+)\\n\\s+pullPolicy: \\S+\\n\\s+tag: (?<currentValue>\\S+)"
+      ],
+      "datasourceTemplate": "docker"
+    },
+    {
+      "description": "Upstream driver version",
+      "customType": "regex",
+      "managerFilePatterns": ["/^deploy/helm/Chart\\.yaml$/"],
+      "matchStrings": ["appVersion: (?<currentValue>v\\S+)"],
+      "depNameTemplate": "SynologyOpenSource/synology-csi",
+      "datasourceTemplate": "github-releases"
+    },
+    {
+      "description": "Helm version in the release workflow",
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/workflows/release\\.yaml$/"],
+      "matchStrings": [
+        "uses: azure/setup-helm@\\S+.*\\n\\s+with:\\n\\s+version: (?<currentValue>\\S+)"
+      ],
+      "depNameTemplate": "helm/helm",
+      "datasourceTemplate": "github-releases"
+    }
+  ]
+}
