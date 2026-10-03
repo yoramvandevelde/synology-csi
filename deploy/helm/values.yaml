@@ -40,10 +40,12 @@ images:
     pullPolicy: IfNotPresent
     tag: v2.6.3
   plugin:
-    image: synology/synology-csi
+    image: ghcr.io/yoramvandevelde/synology-csi
     pullPolicy: IfNotPresent
     # Defaults to {{ $.Chart.AppVersion }} if empty or not present:
     tag: ""
+    # (optional) Pin the image by digest, e.g. "sha256:...". Takes precedence over tag.
+    digest: ""
     supportChrootDir: true
   provisioner:
     image: registry.k8s.io/sig-storage/csi-provisioner

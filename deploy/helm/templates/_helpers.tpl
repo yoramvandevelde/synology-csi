@@ -59,3 +59,16 @@ name: client-info
 secret:
   secretName: {{ .Values.clientInfoSecret.name | default (include "synology-csi.fullname" . | printf "%s-client-info") }}
 {{- end }}
+
+{{/*
+Plugin image reference. A digest, when set, takes precedence over the tag.
+*/}}
+{{- define "synology-csi.pluginImage" -}}
+{{- with .Values.images.plugin }}
+{{- if .digest }}
+{{- printf "%s@%s" .image .digest }}
+{{- else }}
+{{- printf "%s:%s" .image (.tag | default $.Chart.AppVersion) }}
+{{- end }}
+{{- end }}
+{{- end }}

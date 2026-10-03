@@ -98,7 +98,7 @@ spec:
             - name: CSI_ENDPOINT
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
           {{- with .plugin }}
-          image: {{ .image }}:{{ .tag | default $.Chart.AppVersion }}
+          image: {{ include "synology-csi.pluginImage" $ }}
           imagePullPolicy: {{ .pullPolicy }}
           {{- end }}
           securityContext:

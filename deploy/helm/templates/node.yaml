@@ -114,7 +114,7 @@ spec:
                 fieldRef:
                   fieldPath: spec.nodeName
           {{- with .plugin }}
-          image: {{ .image }}:{{ .tag | default $.Chart.AppVersion }}
+          image: {{ include "synology-csi.pluginImage" $ }}
           imagePullPolicy: {{ .pullPolicy }}
           {{- end }}
           securityContext:
