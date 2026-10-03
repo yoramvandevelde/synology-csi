@@ -40,7 +40,7 @@ images:
     pullPolicy: IfNotPresent
     tag: v2.15.0
   plugin:
-    image: ghcr.io/yoramvandevelde/synology-csi
+    image: ghcr.io/yoramvandevelde/synology-csi@sha256:1c0aeb32788ade9f88d6de3857b22072214902e620a0f54c8e159741b511a47e
     pullPolicy: IfNotPresent
     # Defaults to {{ $.Chart.AppVersion }} if empty or not present:
     tag: ""
