@@ -37,7 +37,7 @@ func (service *DsmService) createSMBorNFSVolumeBySnapshot(dsm *webapi.DSM, spec 
 
 	srcShareInfo, err := dsm.ShareGet(srcSnapshot.ParentName)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, fmt.Sprintf("Failed to get share: %s, err: %v", srcSnapshot.ParentName, err))
+		return nil, status.Errorf(codes.Internal, "Failed to get share: %s, err: %v", srcSnapshot.ParentName, err)
 	}
 
 	shareCloneSpec := webapi.ShareCloneSpec{
@@ -56,7 +56,7 @@ func (service *DsmService) createSMBorNFSVolumeBySnapshot(dsm *webapi.DSM, spec 
 	if _, err := dsm.ShareClone(shareCloneSpec); err != nil {
 		if !errors.Is(err, utils.AlreadyExistError("")) {
 			return nil,
-				status.Errorf(codes.Internal, fmt.Sprintf("Failed to create volume with source volume ID: %s, err: %v", srcShareInfo.Uuid, err))
+				status.Errorf(codes.Internal, "Failed to create volume with source volume ID: %s, err: %v", srcShareInfo.Uuid, err)
 		}
 		// The share is from an earlier attempt, so it is not ours to remove.
 	} else {
@@ -67,7 +67,7 @@ func (service *DsmService) createSMBorNFSVolumeBySnapshot(dsm *webapi.DSM, spec 
 	shareInfo, err := dsm.ShareGet(spec.ShareName)
 	if err != nil {
 		return nil,
-			status.Errorf(codes.Internal, fmt.Sprintf("Failed to get existed Share with name: [%s], err: %v", spec.ShareName, err))
+			status.Errorf(codes.Internal, "Failed to get existed Share with name: [%s], err: %v", spec.ShareName, err)
 	}
 
 	newSizeInMB := utils.BytesToMBCeil(spec.Size)
@@ -76,7 +76,7 @@ func (service *DsmService) createSMBorNFSVolumeBySnapshot(dsm *webapi.DSM, spec 
 		if err := dsm.SetShareQuota(shareInfo, newSizeInMB); err != nil {
 			msg := fmt.Sprintf("Failed to set quota [%d] to Share [%s], err: %v", newSizeInMB, shareInfo.Name, err)
 			log.Error(msg)
-			return nil, status.Errorf(codes.Internal, msg)
+			return nil, status.Error(codes.Internal, msg)
 		}
 
 		shareInfo.QuotaValueInMB = newSizeInMB
@@ -134,7 +134,7 @@ func (service *DsmService) createSMBorNFSVolumeByVolume(dsm *webapi.DSM, spec *m
 	if _, err := dsm.ShareClone(shareCloneSpec); err != nil {
 		if !errors.Is(err, utils.AlreadyExistError("")) {
 			return nil,
-				status.Errorf(codes.Internal, fmt.Sprintf("Failed to create volume with source volume ID: %s, err: %v", srcShareInfo.Uuid, err))
+				status.Errorf(codes.Internal, "Failed to create volume with source volume ID: %s, err: %v", srcShareInfo.Uuid, err)
 		}
 	} else {
 		shareName := spec.ShareName
@@ -144,7 +144,7 @@ func (service *DsmService) createSMBorNFSVolumeByVolume(dsm *webapi.DSM, spec *m
 	shareInfo, err := dsm.ShareGet(spec.ShareName)
 	if err != nil {
 		return nil,
-			status.Errorf(codes.Internal, fmt.Sprintf("Failed to get existed Share with name: [%s], err: %v", spec.ShareName, err))
+			status.Errorf(codes.Internal, "Failed to get existed Share with name: [%s], err: %v", spec.ShareName, err)
 	}
 
 	if shareInfo.QuotaValueInMB == 0 {
@@ -152,7 +152,7 @@ func (service *DsmService) createSMBorNFSVolumeByVolume(dsm *webapi.DSM, spec *m
 		if err := dsm.SetShareQuota(shareInfo, newSizeInMB); err != nil {
 			msg := fmt.Sprintf("Failed to set quota [%d] to Share [%s], err: %v", newSizeInMB, shareInfo.Name, err)
 			log.Error(msg)
-			return nil, status.Errorf(codes.Internal, msg)
+			return nil, status.Error(codes.Internal, msg)
 		}
 
 		shareInfo.QuotaValueInMB = newSizeInMB
@@ -188,7 +188,7 @@ func (service *DsmService) createSMBorNFSVolumeByDsm(dsm *webapi.DSM, spec *mode
 		vol, err := service.getFirstAvailableVolume(dsm, spec.Size, spec.Protocol)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal,
-				fmt.Sprintf("Failed to get available location, err: %v", err))
+				"Failed to get available location, err: %v", err)
 		}
 		spec.Location = vol.Path
 	}
@@ -197,11 +197,11 @@ func (service *DsmService) createSMBorNFSVolumeByDsm(dsm *webapi.DSM, spec *mode
 	dsmVolInfo, err := dsm.VolumeGet(spec.Location)
 	if err != nil {
 		return nil,
-			status.Errorf(codes.InvalidArgument, fmt.Sprintf("Unable to find location %s", spec.Location))
+			status.Errorf(codes.InvalidArgument, "Unable to find location %s", spec.Location)
 	}
 
 	if dsmVolInfo.FsType == models.FsTypeExt4 {
-		return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("Location: %s with ext4 fstype was not supported for creating smb/nfs protocol's K8s volume", spec.Location))
+		return nil, status.Errorf(codes.InvalidArgument, "Location: %s with ext4 fstype was not supported for creating smb/nfs protocol's K8s volume", spec.Location)
 	}
 
 	// 3. Create Share
@@ -224,7 +224,7 @@ func (service *DsmService) createSMBorNFSVolumeByDsm(dsm *webapi.DSM, spec *mode
 	err = dsm.ShareCreate(shareSpec)
 	if err != nil {
 		if !errors.Is(err, utils.AlreadyExistError("")) {
-			return nil, status.Errorf(codes.Internal, fmt.Sprintf("Failed to create share, err: %v", err))
+			return nil, status.Errorf(codes.Internal, "Failed to create share, err: %v", err)
 		}
 	} else {
 		shareName := spec.ShareName
@@ -234,7 +234,7 @@ func (service *DsmService) createSMBorNFSVolumeByDsm(dsm *webapi.DSM, spec *mode
 	shareInfo, err := dsm.ShareGet(spec.ShareName)
 	if err != nil {
 		return nil,
-			status.Errorf(codes.Internal, fmt.Sprintf("Failed to get existed Share with name: %s, err: %v", spec.ShareName, err))
+			status.Errorf(codes.Internal, "Failed to get existed Share with name: %s, err: %v", spec.ShareName, err)
 	}
 
 	log.Debugf("[%s] createSMBorNFSVolumeByDsm Successfully. VolumeId: %s", dsm.Ip, shareInfo.Uuid)

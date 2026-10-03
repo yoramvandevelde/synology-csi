@@ -227,7 +227,7 @@ func (ns *nodeServer) loginNVMeSubsystem(volumeId string) ([]string, error) {
 			"Couldn't determine whether volume[%s] exists: %v", volumeId, err)
 	}
 	if k8sVolume == nil {
-		return nil, status.Error(codes.NotFound, fmt.Sprintf("Volume[%s] is not found", volumeId))
+		return nil, status.Errorf(codes.NotFound, "Volume[%s] is not found", volumeId)
 	}
 
 	subsysNqn := k8sVolume.Subsystem.Nqn
@@ -280,7 +280,7 @@ func (ns *nodeServer) loginTarget(volumeId string) (paths []string, iqn string, 
 			"Couldn't determine whether volume[%s] exists: %v", volumeId, err)
 	}
 	if k8sVolume == nil {
-		return nil, "", 0, status.Error(codes.NotFound, fmt.Sprintf("Volume[%s] is not found", volumeId))
+		return nil, "", 0, status.Errorf(codes.NotFound, "Volume[%s] is not found", volumeId)
 	}
 
 	portals := ns.getPortals(k8sVolume.DsmIp)
@@ -294,13 +294,13 @@ func (ns *nodeServer) loginTarget(volumeId string) (paths []string, iqn string, 
 	for _, portal := range portals {
 		if err := ns.Initiator.login(iqn, portal); err != nil {
 			return nil, "", 0, status.Errorf(codes.Internal,
-				fmt.Sprintf("Failed to login with target iqn [%s], err: %v", iqn, err))
+				"Failed to login with target iqn [%s], err: %v", iqn, err)
 		}
 
 		path := fmt.Sprintf("%sip-%s-iscsi-%s-lun-%d", "/dev/disk/by-path/", portal, iqn, lun)
 		if err := waitForDevicePathToExist(path); err != nil {
 			log.Errorf("Can't find device path [%s]: %v", path, err)
-			return nil, "", 0, status.Errorf(codes.Internal, fmt.Sprintf("Can't find device path [%s]: %v", path, err))
+			return nil, "", 0, status.Errorf(codes.Internal, "Can't find device path [%s]: %v", path, err)
 		}
 
 		paths = append(paths, path)
@@ -370,7 +370,7 @@ func checkGidPresentInMountFlags(volumeMountGroup string, mountFlags []string) (
 			gidPresentInMountFlags = true
 			kvpair := strings.Split(mountFlag, "=")
 			if volumeMountGroup != "" && len(kvpair) == 2 && !strings.EqualFold(volumeMountGroup, kvpair[1]) {
-				return false, status.Error(codes.InvalidArgument, fmt.Sprintf("gid(%s) in storageClass and pod fsgroup(%s) are not equal", kvpair[1], volumeMountGroup))
+				return false, status.Errorf(codes.InvalidArgument, "gid(%s) in storageClass and pod fsgroup(%s) are not equal", kvpair[1], volumeMountGroup)
 			}
 		}
 	}
@@ -628,15 +628,15 @@ func (ns *nodeServer) nodeStageISCSIVolume(ctx context.Context, spec *models.Nod
 
 func (ns *nodeServer) nodeStageSMBVolume(ctx context.Context, spec *models.NodeStageVolumeSpec, secrets map[string]string) (*csi.NodeStageVolumeResponse, error) {
 	if spec.VolumeCapability.GetBlock() != nil {
-		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("SMB protocol only allows 'mount' access type"))
+		return nil, status.Errorf(codes.InvalidArgument, "SMB protocol only allows 'mount' access type")
 	}
 
 	if spec.Source == "" { //"//<host>/<shareName>"
-		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Missing 'source' field"))
+		return nil, status.Errorf(codes.InvalidArgument, "Missing 'source' field")
 	}
 
 	if secrets == nil {
-		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Missing secrets for node staging volume"))
+		return nil, status.Errorf(codes.InvalidArgument, "Missing secrets for node staging volume")
 	}
 
 	username := strings.TrimSpace(secrets["username"])
@@ -645,7 +645,7 @@ func (ns *nodeServer) nodeStageSMBVolume(ctx context.Context, spec *models.NodeS
 
 	// set permission to access the share
 	if err := ns.setSMBVolumePermission(spec.Source, username, utils.AuthTypeReadWrite); err != nil {
-		return nil, status.Error(codes.Internal, fmt.Sprintf("Failed to set permission, source: %s, err: %v", spec.Source, err))
+		return nil, status.Errorf(codes.Internal, "Failed to set permission, source: %s, err: %v", spec.Source, err)
 	}
 
 	// create mount point if not exists
@@ -676,8 +676,8 @@ func (ns *nodeServer) nodeStageSMBVolume(ctx context.Context, spec *models.NodeS
 	}
 	var sensitiveOptions = []string{fmt.Sprintf("%s=%s,%s=%s", "username", username, "password", password)}
 	if err := ns.mountSensitiveWithRetry(spec.Source, targetPath, fsType, options, sensitiveOptions); err != nil {
-		return nil, status.Error(codes.Internal,
-			fmt.Sprintf("Volume[%s] failed to mount %q on %q. err: %v", spec.VolumeId, spec.Source, targetPath, err))
+		return nil, status.Errorf(codes.Internal,
+			"Volume[%s] failed to mount %q on %q. err: %v", spec.VolumeId, spec.Source, targetPath, err)
 	}
 	return &csi.NodeStageVolumeResponse{}, nil
 }
@@ -691,11 +691,11 @@ func (ns *nodeServer) nodeStageNFSVolume(ctx context.Context, spec *models.NodeS
 
 	nodeIps, err := getNodeAddress(ctx, ns.Client)
 	if err != nil {
-		return nil, status.Error(codes.Internal, fmt.Sprintf("Failed to get node IPs for NFS privilege setting, err: %v", err))
+		return nil, status.Errorf(codes.Internal, "Failed to get node IPs for NFS privilege setting, err: %v", err)
 	}
 
 	if err := ns.setNFSVolumePrivilege(spec.Source, nodeIps, utils.AuthTypeReadWrite, false); err != nil {
-		return nil, status.Error(codes.Internal, fmt.Sprintf("Failed to set NFS privilege rule, source: %s, err: %v", spec.Source, err))
+		return nil, status.Errorf(codes.Internal, "Failed to set NFS privilege rule, source: %s, err: %v", spec.Source, err)
 	}
 	return &csi.NodeStageVolumeResponse{}, nil
 }
@@ -854,14 +854,14 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 					var err error
 					mountPermissionsUint, err = strconv.ParseUint(v, 8, 32)
 					if err != nil {
-						return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("invalid mountPermissions %s", v))
+						return nil, status.Errorf(codes.InvalidArgument, "invalid mountPermissions %s", v)
 					}
 				}
 			}
 		}
 
 		if server == "" || baseDir == "" {
-			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Invalid inputs: server(dsm) and baseDir are required."))
+			return nil, status.Errorf(codes.InvalidArgument, "Invalid inputs: server(dsm) and baseDir are required.")
 		}
 		source := fmt.Sprintf("%s:%s", server, baseDir)
 
@@ -991,7 +991,7 @@ func (ns *nodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 		if os.IsNotExist(err) {
 			return &csi.NodeUnpublishVolumeResponse{}, nil
 		}
-		return nil, status.Errorf(codes.Internal, err.Error())
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	notMount, err := mount.IsNotMountPoint(ns.Mounter.Interface, targetPath)
@@ -1041,14 +1041,14 @@ func (ns *nodeServer) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVo
 			"Couldn't determine whether volume[%s] exists: %v", volumeId, err)
 	}
 	if k8sVolume == nil {
-		return nil, status.Error(codes.NotFound,
-			fmt.Sprintf("Volume[%s] is not found", volumeId))
+		return nil, status.Errorf(codes.NotFound,
+			"Volume[%s] is not found", volumeId)
 	}
 
 	notMount, err := mount.IsNotMountPoint(ns.Mounter.Interface, volumePath)
 	if err != nil || notMount {
-		return nil, status.Error(codes.NotFound,
-			fmt.Sprintf("Volume[%s] does not exist on the %s", volumeId, volumePath))
+		return nil, status.Errorf(codes.NotFound,
+			"Volume[%s] does not exist on the %s", volumeId, volumePath)
 	}
 
 	if k8sVolume.Protocol == utils.ProtocolSmb || k8sVolume.Protocol == utils.ProtocolNfs {
@@ -1113,7 +1113,7 @@ func (ns *nodeServer) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 			"Couldn't determine whether volume[%s] exists: %v", volumeId, err)
 	}
 	if k8sVolume == nil {
-		return nil, status.Error(codes.NotFound, fmt.Sprintf("Volume[%s] is not found", volumeId))
+		return nil, status.Errorf(codes.NotFound, "Volume[%s] is not found", volumeId)
 	}
 
 	if k8sVolume.Protocol == utils.ProtocolSmb || k8sVolume.Protocol == utils.ProtocolNfs {
@@ -1124,7 +1124,7 @@ func (ns *nodeServer) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 	var volumeMountPath string
 	if k8sVolume.Protocol == utils.ProtocolIscsi {
 		if err := ns.Initiator.rescan(k8sVolume.Target.Iqn); err != nil {
-			return nil, status.Error(codes.Internal, fmt.Sprintf("Failed to rescan. err: %v", err))
+			return nil, status.Errorf(codes.Internal, "Failed to rescan. err: %v", err)
 		}
 
 		// Assume target and lun 1-1 mapping
@@ -1151,7 +1151,7 @@ func (ns *nodeServer) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandV
 
 	if strings.Contains(volumeMountPath, "/dev/mapper") && ns.tools.IsMultipathEnabled() {
 		if err := ns.tools.multipath_resize(filepath.Base(volumeMountPath)); err != nil {
-			return nil, status.Error(codes.Internal, fmt.Sprintf("Failed to resize multipath device in %s. err: %v", volumeMountPath, err))
+			return nil, status.Errorf(codes.Internal, "Failed to resize multipath device in %s. err: %v", volumeMountPath, err)
 		}
 	}
 
