@@ -1,3 +1,7 @@
+# Personal fork of the official CSI driver
+
+Bought a very old DS216 for my homelab cluster and just want iSCSI and NFS provisioning to work. I was not impressed by the state of the official Synology repo: they seem to be working towards OpenShift certification while ignoring bugs and security updates. This repo fixes the ones I care about and publishes a signed, reproducible build. See [docs/talos.md](docs/talos.md) for installation.
+
 # Synology CSI Driver for Kubernetes
 
 The official [Container Storage Interface](https://github.com/container-storage-interface) driver for Synology NAS.
