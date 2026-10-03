@@ -22,10 +22,35 @@ jobs:
 
     outputs:
       digest: ${{ steps.build.outputs.digest }}
+      tag: ${{ steps.version.outputs.tag }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # all tags, to count image revisions
+
+      # The git tag is the chart version; the image is tagged
+      # <appVersion>-r<N>, where N counts the releases up to and including
+      # this one that ship the same appVersion (upstream driver version).
+      - name: Resolve versions
+        id: version
+        run: |
+          chart=deploy/helm/Chart.yaml
+          version=$(awk '/^version:/ {print $2}' "${chart}")
+          app=$(awk '/^appVersion:/ {print $2}' "${chart}")
+          if [ "v${version}" != "${GITHUB_REF_NAME}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match chart version ${version}"
+            exit 1
+          fi
+          n=0
+          for t in $(git tag --merged "${GITHUB_REF_NAME}" --list 'v*'); do
+            if git show "${t}:${chart}" | grep -qx "appVersion: ${app}"; then
+              n=$((n + 1))
+            fi
+          done
+          echo "app=${app}" >> "$GITHUB_OUTPUT"
+          echo "tag=${app}-r${n}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
@@ -43,8 +68,8 @@ jobs:
         with:
           images: ${{ env.IMAGE }}
           tags: |
-            type=semver,pattern=v{{version}}
-            type=semver,pattern=v{{major}}.{{minor}}
+            type=raw,value=${{ steps.version.outputs.tag }}
+            type=raw,value=${{ steps.version.outputs.app }}
 
       - name: Build and push
         id: build
@@ -56,7 +81,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            IMAGE_VERSION=${{ github.ref_name }}
+            IMAGE_VERSION=${{ steps.version.outputs.tag }}
           sbom: true
           provenance: mode=max
 
@@ -100,10 +125,7 @@ jobs:
 
       - name: Package chart
         run: |
-          helm package deploy/helm \
-            --version "${GITHUB_REF_NAME#v}" \
-            --app-version "${GITHUB_REF_NAME}" \
-            --destination dist
+          helm package deploy/helm --destination dist
 
       - name: Push chart
         id: push
@@ -132,9 +154,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DIGEST: ${{ needs.image.outputs.digest }}
+          IMAGE_TAG: ${{ needs.image.outputs.tag }}
         run: |
           cat > notes.md <<NOTES
-          Image: \`${IMAGE}:${GITHUB_REF_NAME}\`
+          Image: \`${IMAGE}:${IMAGE_TAG}\`
           Digest: \`${DIGEST}\`
           Chart: \`oci://${CHART_REPO}/synology-csi\` version \`${GITHUB_REF_NAME#v}\`
           NOTES

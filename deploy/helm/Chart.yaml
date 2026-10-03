@@ -9,5 +9,6 @@ kubeVersion: ">= 1.20.0"
 sources:
   - https://github.com/yoramvandevelde/synology-csi
   - https://github.com/SynologyOpenSource/synology-csi
-# Overridden at release time with the git tag (without the leading "v").
-version: 1.4.0 # must be SemVer 2
+# Chart version, independent of the driver. Must match the release tag
+# (without the leading "v"). appVersion is the upstream driver version.
+version: 2.0.0 # must be SemVer 2

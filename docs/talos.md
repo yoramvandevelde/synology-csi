@@ -12,6 +12,13 @@ reproducible bugs.
 | Image | `ghcr.io/yoramvandevelde/synology-csi:<tag>` (linux/amd64) |
 | Helm chart | `oci://ghcr.io/yoramvandevelde/charts/synology-csi` |
 
+Versioning:
+
+- The chart has its own SemVer; release tags (`vX.Y.Z`) are chart versions.
+- The chart's `appVersion` is the upstream driver version.
+- Images are tagged `<appVersion>-rN`, where N increases with every release
+  of the same driver version, plus a floating `<appVersion>` tag.
+
 Both are signed with cosign (keyless, GitHub OIDC). The image also carries an
 SBOM and provenance attestation. A released chart pins the image built for the
 same tag by digest (`images.plugin.digest`).
@@ -22,7 +29,7 @@ Verify before installing:
 cosign verify ghcr.io/yoramvandevelde/charts/synology-csi:<version> \
   --certificate-identity-regexp '^https://github.com/yoramvandevelde/synology-csi/' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
-cosign verify ghcr.io/yoramvandevelde/synology-csi:<tag> \
+cosign verify ghcr.io/yoramvandevelde/synology-csi:<appVersion>-rN \
   --certificate-identity-regexp '^https://github.com/yoramvandevelde/synology-csi/' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
