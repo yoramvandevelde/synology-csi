@@ -58,7 +58,7 @@ storageClasses:
   #   mountOptions:
   #     - nfsvers=4.1
 
-# DS216 has no Btrfs, so no LUN snapshots.
+# Snapshots need a Btrfs volume on DSM; disable the class otherwise.
 volumeSnapshotClasses:
   synology-snapshotclass:
     disabled: true
