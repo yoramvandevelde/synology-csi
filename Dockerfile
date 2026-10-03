@@ -1,7 +1,7 @@
 # Copyright 2021 Synology Inc.
 
 ############## Build stage ##############
-FROM golang:1.21.4-alpine as builder
+FROM --platform=$BUILDPLATFORM golang:1.27.1-alpine3.24@sha256:8a5910f31396cd4d89662f56c68b3ae31d374308270a1c3bd96672ee5ed43414 AS builder
 LABEL stage=synobuilder
 
 RUN apk add --no-cache alpine-sdk
@@ -21,7 +21,7 @@ RUN env GOARCH=$(echo "$TARGETPLATFORM" | cut -f2 -d/) \
         make
 
 ############## Final stage ##############
-FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
+FROM alpine:3.24.2@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
 
 ARG IMAGE_VERSION=dev
 ARG IMAGE_RELEASE=1
@@ -33,27 +33,13 @@ LABEL name="synology-csi" \
       summary="Synology CSI driver for Kubernetes" \
       description="A Container Storage Interface (CSI) driver for Synology NAS."
 
-# Runtime tools. blkid is provided by util-linux.
-#
-# btrfs-progs (present in the old Alpine image) is intentionally omitted, which
-# drops support for StorageClass `fsType: btrfs` (mkfs runs inside the container,
-# see pkg/driver/nodeserver.go NodeStageVolume). Rationale: RHEL 9 removed btrfs
-# entirely — no kernel module and no btrfs-progs package — so on RHCOS/OpenShift
-# the filesystem could not be mounted even if we shipped the tools, and the UBI/
-# RHEL repos have no package to install. Note this IS a behavior change for
-# non-RHEL nodes whose kernels support btrfs; it must be called out in the docs/
-# release notes. DSM-side btrfs volumes (BLUN location) are unaffected — that is
-# an API-level attribute and needs no local tools.
-#
-# NOTE: e2fsprogs, xfsprogs, nfs-utils and cifs-utils are NOT in the free UBI
-# repos; they live in the full RHEL 9 repos. This build therefore requires RHEL
-# entitlement (build on a subscribed RHEL host, or via a Red Hat certification
-# build service). Without entitlement, microdnf resolves only the UBI subset and
-# this step fails on the missing packages.
-RUN microdnf install -y \
-        e2fsprogs xfsprogs util-linux iproute bash \
-        ca-certificates cifs-utils nfs-utils nvme-cli \
-    && microdnf clean all
+# Runtime tools, the same set as the upstream Alpine image before the switch to
+# UBI. mkfs, resize2fs/xfs_growfs (the -extra packages) and NFS/SMB mounts run
+# inside the container, see pkg/driver/nodeserver.go. iscsiadm is not shipped:
+# it runs on the host via --chroot-dir.
+RUN apk add --no-cache \
+        e2fsprogs e2fsprogs-extra xfsprogs xfsprogs-extra blkid util-linux \
+        iproute2 bash btrfs-progs ca-certificates cifs-utils nfs-utils nvme-cli
 
 # Red Hat certification requires a /licenses directory in the image.
 COPY LICENSE /licenses/LICENSE
