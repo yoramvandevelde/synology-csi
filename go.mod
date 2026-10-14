@@ -1,6 +1,6 @@
 module github.com/SynologyOpenSource/synology-csi
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
@@ -38,7 +38,7 @@ require (
 	github.com/onsi/ginkgo v1.14.2 // indirect
 	github.com/onsi/gomega v1.10.4 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	golang.org/x/crypto v0.55.0 // indirect
+	golang.org/x/crypto v0.56.0 // indirect
 	golang.org/x/net v0.58.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/term v0.45.0 // indirect
