@@ -13,7 +13,7 @@ env:
 
 jobs:
   image:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     permissions:
       contents: read
@@ -93,7 +93,7 @@ jobs:
 
   chart:
     needs: image
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     permissions:
       contents: read
@@ -144,7 +144,7 @@ jobs:
 
   release:
     needs: [image, chart]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     permissions:
       contents: write # create the GitHub release
