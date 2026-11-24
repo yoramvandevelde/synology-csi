@@ -50,16 +50,6 @@
       "matchStrings": ["appVersion: (?<currentValue>v\\S+)"],
       "depNameTemplate": "SynologyOpenSource/synology-csi",
       "datasourceTemplate": "github-releases"
-    },
-    {
-      "description": "Helm version in the release workflow",
-      "customType": "regex",
-      "managerFilePatterns": ["/^\\.github/workflows/release\\.yaml$/"],
-      "matchStrings": [
-        "uses: azure/setup-helm@\\S+.*\\n\\s+with:\\n\\s+version: (?<currentValue>\\S+)"
-      ],
-      "depNameTemplate": "helm/helm",
-      "datasourceTemplate": "github-releases"
     }
   ]
 }
